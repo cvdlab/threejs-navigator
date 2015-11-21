@@ -10,6 +10,7 @@ body {
 }
 
 #blocker {
+  display: none;
   position: absolute;
   width: 100%;
   height: 100%;
@@ -20,6 +21,13 @@ body {
   width: 100%;
   height: 100%;
   padding-top: 200px;
+  color: #ffffff;
   text-align: center;
   cursor: pointer;
+}
+
+.dg {
+    color: #3366FF;
+    font: 11px 'Lucida Grande', sans-serif;
+    text-shadow: 0 -1px 0 #111;
 }
