@@ -1,4 +1,4 @@
-var camera, scene, renderer;
+var camera,mapCamera, scene, renderer, mapRenderer;
 var geometry, material, mesh;
 var light;
 var controls;
@@ -12,6 +12,7 @@ var cubeCamera;
 var mesh;
 var rays;
 var caster;
+var clock;
 
 function fillOctree(scene) {
     scene.traverse(function(obj) { 
@@ -26,32 +27,11 @@ function generateBoundingBox() {
   var bbox,gbox,mbox,box;
     scene.traverse(function(obj) { 
       if (obj instanceof THREE.Mesh) {
-        //bbox = new THREE.Box3().setFromObject(obj);
-        //obj.geometry.boundingBox=bbox;
         var bbox = new THREE.BoundingBoxHelper( obj, 'red' );
-        //bbox.position.copy( obj.matrixWorld.getPosition() );
         bbox.update();
-        /*
-        console.log(obj.parent.position.x);
-        console.log(obj.parent.position.y);
-        console.log(obj.parent.position.z);
-        */
         bbox.position.x=obj.parent.position.x;
         bbox.position.y=obj.parent.position.y;
         bbox.position.z=obj.parent.position.z;
-       // bbox.position.copy( obj.parent.position )
-        //scene.add( bbox );
-        //console.log(obj);
-        //console.log(bbox);
-       // gbox= new THREE.BoxGeometry(bbox.max.x-bbox.min.x,bbox.max.y-bbox.min.y,bbox.max.z-bbox.min.z);
-       // mbox= new THREE.MeshBasicMaterial({color:'red'});
-       // box=new THREE.Mesh(gbox,mbox);
-        //box.visible=false;
-
-       // box.position.copy( obj.matrixWorld.getPosition() );
-        //box.position.copy(obj.position);
-       // scene.add(box);
-        //obj.add(box);
       }
     });      
 }
@@ -68,24 +48,6 @@ function createOctree(scene) {
   }); 
 
 }
-/*
-function createRaysDirectionAndCaster() {
-
-  rays = [
-      new THREE.Vector3(0, 1, 0.35),//backward
-      new THREE.Vector3(0.35, 1, 0.35),//backward_right
-      new THREE.Vector3(0.35, 1, 0),//right 
-      new THREE.Vector3(0.35, 1, -0.35), //forward_right
-      new THREE.Vector3(0, 1, -0.35), //forward
-      new THREE.Vector3(-0.35, 1, -0.35),//forward left
-      new THREE.Vector3(-0.35, 1, 0),//left
-      new THREE.Vector3(-0.35, 1, 0.35) //backward_left
-     // new THREE.Vector3(0, 1, -1) //forward stairs
-    ];
-
-  caster = new THREE.Raycaster();
-
-}*/
 
 
 function createRaysDirectionAndCaster() {
@@ -143,7 +105,53 @@ function generate_envmap(object) {
   camere.forEach(function (camera) {
     camera.updateCubeMap(renderer,scene);
   });
+}
+
+function copy(mesh) {
+    var geometry=mesh.geometry.clone();
+    var material=mesh.material.clone();
+    var copy = new THREE.Mesh( geometry, material );
+    
+    copy.scale.x=mesh.scale.x;
+    copy.scale.y=mesh.scale.y;
+    copy.scale.z=mesh.scale.z;
+
+    return copy;
 } 
+
+function create_navigation_token() {
+
+  var tokenMat = new THREE.MeshBasicMaterial({color: 0x82CAFF}); //0x82CAFF //0x50EBEC
+  var tokenGeo = new THREE.CylinderGeometry(31, 31, 45, 50, 50);
+  token = new THREE.Mesh( tokenGeo, tokenMat );
+  token.position.set(mapCamera.position.x, 25, mapCamera.position.z);
+  token.position.y = controls.getObject().position.y;
+  token.visible = false;
+  scene.add( token );
+
+  var token_border = copy(token);
+  token_border.material.color.setHex('0x000000');
+  token_border.scale.x = 1.15;
+  token_border.scale.z = 1.15;
+  token_border.scale.y = 0.8;
+  token_border.position.y -= 18;
+  token.add(token_border);
+
+  //var token_eyes_mat = new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity: 0.5});   
+  var token_eyes_geo = new THREE.CylinderGeometry(25, 0, 40, 50, 50);
+  var token_eyes = new THREE.Mesh(token_eyes_geo, tokenMat);
+  token_eyes.position.z = -40;
+  token_eyes.rotation.x = 1.57;
+  token.add(token_eyes);
+
+  var token_border_eyes = copy(token_eyes);
+  token_border_eyes.material.color.setHex('0x000000');
+  token_border_eyes.scale.x = 1.4;
+  token_border_eyes.scale.z = 0.1;
+  token_border_eyes.scale.y = 1.4;
+  token_eyes.add(token_border_eyes);
+
+}
 
 function setGUI() {
 
@@ -168,7 +176,6 @@ function setGUI() {
       var on_parse_text = function (object) {
         scene.add(object);
         generate_envmap(object);
-        //generateBoundingBox();
         createOctree(object);
         fillOctree(object);
       };
@@ -180,15 +187,20 @@ function setGUI() {
     };
 
     this.switchCamera = function () {
-      if(!fp) {  
+      var not_empty = scene.children.filter(function(item) {return item instanceof THREE.Scene}).length !== 0;
+      if(!fp && not_empty) {  
+        token.visible = true;
         trackballControls.reset();
         document.body.requestPointerLock();
         octree.update(); //in caso tornassimo in visuale dall'alto, possiamo importare una nuova scena, e quindi ci serve rifare update dell'octree
+        fp = true;
       } else {
+        token.visible = false;
         trackballControls = new THREE.TrackballControls(camera2);
         document.getElementById('blocker').style.display = 'none';
+        fp = false;
       }
-      fp = !fp;  
+      //fp = !fp;  
     }
 
     this.fps = function () {
@@ -225,6 +237,7 @@ var mz;
 function init() {
 
   scene = new THREE.Scene();
+  clock = new THREE.Clock();
 
   //Navigator in prima persona
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
@@ -232,6 +245,17 @@ function init() {
   scene.add(controls.getObject());
 
 
+  //map camera
+  mapCamera = new THREE.OrthographicCamera(
+      window.innerWidth / -2,   // Left
+      window.innerWidth / 2,    // Right
+      window.innerHeight / 2,   // Top
+      window.innerHeight / -2,  // Bottom
+      -500,                  // Near 
+      1000 );                // Far 
+  mapCamera.position.set(0,500,0);
+  mapCamera.lookAt( new THREE.Vector3(0,0,0) );
+    
   var gx = new THREE.MeshBasicMaterial({color: 0xff0000});
   var gz = new THREE.MeshBasicMaterial({color: 0x0000ff});
 
@@ -239,9 +263,6 @@ function init() {
 
   mx = new THREE.Mesh(cubo,gx);
   mz = new THREE.Mesh(cubo,gz);
-
-  //controls.getObject().add(mx);
-  //controls.getObject().add(mz);
 
   mx.position.x += -100;
   mz.position.z += -100;
@@ -257,8 +278,19 @@ function init() {
   renderer = new THREE.WebGLRenderer();
   renderer.setClearColor(0xffffff);
   renderer.setSize(window.innerWidth, window.innerHeight);
+  //renderer.setPixelRatio(window.devicePixelRatio);
   document.body.appendChild(renderer.domElement);
   window.addEventListener('resize', onWindowResize, false);
+
+  mapRenderer = new THREE.WebGLRenderer( {antialias:true} );
+  mapRenderer.setClearColor(0xdddddd);
+  mapRenderer.autoClear = false;
+  mapRenderer.autoUpdateScene = false;  
+  //mapRenderer.setSize(240, 160);
+  mapRenderer.setPixelRatio(document.getElementById('mapCanvas').devicePixelRatio);
+  document.getElementById('mapCanvas').appendChild(mapRenderer.domElement);
+
+  create_navigation_token();
 
   fp = false;
   fps = true;
@@ -294,11 +326,23 @@ function animate () {
 
   if(fp) {
     controls.update();
+    token.position.x = controls.getObject().position.x;
+    token.position.z = controls.getObject().position.z;
+    token.rotation.y = controls.getObject().rotation.y;
+    mapCamera.position.x = token.position.x;
+    mapCamera.position.z = token.position.z;
+    token.visible = false;
     renderer.render(scene, camera);
+    token.visible = true; 
+    document.getElementById('mapCanvas').style.visibility = 'visible';
   } else {
     renderer.render(scene, camera2);
     trackballControls.update();
+    document.getElementById('mapCanvas').style.visibility = 'hidden';
   }
+
+  mapRenderer.clear();
+  mapRenderer.render(scene, mapCamera);
 }
 
 init();

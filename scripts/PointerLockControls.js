@@ -229,8 +229,8 @@ THREE.PointerLockControls = function ( camera ) {
 
 this.checkObstacles = function() {
   var collisions,i,octreeResults,vec,move;
-  var distance = 86;
-
+  //var distance = 86;
+  var distance = 78;
   controls.canMoveBackward(true);
   controls.canMoveRight(true);
   controls.canMoveForward(true);
@@ -251,28 +251,28 @@ this.checkObstacles = function() {
           controls.canMoveBackward(false);
           break;
         case 1: // backward right
-          //controls.canMoveBackward(false);
+          controls.canMoveBackward(false);
           controls.canMoveRight(false);         
           break;
         case 2: // right
           controls.canMoveRight(false);
           break;
         case 3: // forward right
-          //controls.canMoveForward(false);
+          controls.canMoveForward(false);
           controls.canMoveRight(false);
           break;
         case 4: // forward
           controls.canMoveForward(false);
           break;
         case 5: // forward left
-          //controls.canMoveForward(false);
+          controls.canMoveForward(false);
           controls.canMoveLeft(false);
           break;
         case 6: // left
           controls.canMoveLeft(false);
           break;
         case 7: // backward left
-          //controls.canMoveBackward(false);
+          controls.canMoveBackward(false);
           controls.canMoveLeft(false);
           break;
   /*      case 8: // forward stairs

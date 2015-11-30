@@ -35455,8 +35455,9 @@ THREE.SpotLightHelper.prototype.dispose = function () {
 
 THREE.SpotLightHelper.prototype.update = function () {
 
-	var vector = new THREE.Vector3();
-	var vector2 = new THREE.Vector3();
+
+	//var vector = new THREE.Vector3();
+	//var vector2 = new THREE.Vector3();
 
 	return function () {
 
@@ -35465,14 +35466,14 @@ THREE.SpotLightHelper.prototype.update = function () {
 
 		this.cone.scale.set( coneWidth, coneWidth, coneLength );
 
-		vector.setFromMatrixPosition( this.light.matrixWorld );
-		vector2.setFromMatrixPosition( this.light.target.matrixWorld );
+		//vector.setFromMatrixPosition( this.light.matrixWorld );
+		//vector2.setFromMatrixPosition( this.light.target.matrixWorld );
 
-		this.cone.lookAt( vector2.sub( vector ) );
+		//this.cone.lookAt( vector2.sub( vector ) );
+		//basta la posizione del target
+		this.cone.lookAt( this.light.target.position );
 
-		this.cone.material.color.copy( this.light.color ).multiplyScalar( this.light.intensity );
-
-	};
+		this.cone.material.color.copy( this.light.color ).multiplyScalar( this.light.intensity );	};
 
 }();
 
