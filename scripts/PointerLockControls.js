@@ -26,6 +26,7 @@ THREE.PointerLockControls = function ( camera ) {
   var moveRight = false;
   var pressRight =false;
   var canMoveRight = true;
+  //var moveUp =false;
 
   //var canMoveForwardStairs=true;
 
@@ -227,24 +228,44 @@ THREE.PointerLockControls = function ( camera ) {
     moveBackward=pressBackward && canMoveBackward;
   };
 
+
+
+/*
 this.checkObstacles = function() {
   var collisions,i,octreeResults,vec,move;
   //var distance = 86;
   var distance = 78;
+  var bottomDistance = 15;
+  var rampDistance = 14;
+  //var rampDistance = 43;
+
+  //moveUp = false;
+
   controls.canMoveBackward(true);
   controls.canMoveRight(true);
   controls.canMoveForward(true);
   controls.canMoveLeft(true);
+  controls.isOnObject(false);
  // controls.canMoveForwardStairs(true);
 
   for (i = 0; i < rays.length; i += 1) {
     vec = new THREE.Vector3();
     vec.x = controls.getObject().position.x;
-    vec.y = controls.getObject().position.y * 0.15;
+
+    if(i>8){
+      vec.y = controls.getObject().position.y - 85;
+    }
+    else{
+     vec.y = controls.getObject().position.y - 85;
+    }
+    //vec.y = controls.getObject().position.y * 0.15;    
     vec.z = controls.getObject().position.z;
     caster.set(vec, controls.getDirection(rays[i]));
     octreeResults = octree.search(caster.ray.origin,caster.ray.far,true,caster.ray.direction);//caster.ray.direction.applyEuler(rotation)); 
     collisions = caster.intersectOctreeObjects(octreeResults);
+    //console.log(collisions[0].geometry);
+
+
     if (collisions.length > 0 && collisions[0].distance <= distance) {
       switch ( i ) {
         case 0: // backward
@@ -275,12 +296,150 @@ this.checkObstacles = function() {
           controls.canMoveBackward(false);
           controls.canMoveLeft(false);
           break;
-  /*      case 8: // forward stairs
-          controls.canMoveForward(false);
-          controls.canMoveForwardStairs(false);
-          break;*/
       }
     }
+    if(i===8 && collisions.length > 0){
+      
+        if(collisions[collisions.length-1].distance <= bottomDistance) {
+          controls.isOnObject(true);
+        } 
+    }
+
+    if(i >8 && collisions.length > 0){
+        if(collisions[collisions.length-1].distance <= rampDistance) {
+
+          console.log(i + "scalino");
+          switch ( i ) {
+            case 9: // backward
+               //moveUp = true;
+               controls.getObject().position.y += 2;
+               controls.canMoveBackward(true);
+              break;
+            case 10: // right
+               //moveUp = true;
+               controls.getObject().position.y += 2;
+               controls.canMoveRight(true);
+              break;
+            case 11: // forward
+              //moveUp = true;
+              controls.getObject().position.y += 2;
+              controls.canMoveForward(true);
+              break;
+            case 12: // left
+               //moveUp = true;
+               controls.getObject().position.y += 2;
+               controls.canMoveLeft(true);
+              break;
+            }
+        } 
+      }
+
+  }
+};*/
+
+this.checkObstacles = function() {
+  var collisions,i,octreeResults,vec,move;
+  //var distance = 86;
+  var distance = 78;
+  var bottomDistance = 15;
+  var rampDistance = 14;
+  //var rampDistance = 43;
+
+  //moveUp = false;
+
+  controls.canMoveBackward(true);
+  controls.canMoveRight(true);
+  controls.canMoveForward(true);
+  controls.canMoveLeft(true);
+  controls.isOnObject(false);
+ // controls.canMoveForwardStairs(true);
+
+  for (i = 0; i < rays.length; i += 1) {
+    vec = new THREE.Vector3();
+    vec.x = controls.getObject().position.x;
+
+    if(i>8){
+      vec.y = controls.getObject().position.y - 85;
+    }
+    else{
+     vec.y = controls.getObject().position.y - 85;
+    }
+    //vec.y = controls.getObject().position.y * 0.15;    
+    vec.z = controls.getObject().position.z;
+    caster.set(vec, controls.getDirection(rays[i]));
+    octreeResults = octree.search(caster.ray.origin,caster.ray.far,true,caster.ray.direction);//caster.ray.direction.applyEuler(rotation)); 
+    collisions = caster.intersectOctreeObjects(octreeResults);
+    //console.log(collisions[0].geometry);
+    collisions.sort(function(a,b) {return a.distance - b.distance}) //<------
+    if (collisions.length > 0 && collisions[0].distance <= distance) {
+      switch ( i ) {
+        case 0: // backward
+          controls.canMoveBackward(false);
+          break;
+        case 1: // backward right
+          controls.canMoveBackward(false);
+          controls.canMoveRight(false);         
+          break;
+        case 2: // right
+          controls.canMoveRight(false);
+          break;
+        case 3: // forward right
+          controls.canMoveForward(false);
+          controls.canMoveRight(false);
+          break;
+        case 4: // forward
+          controls.canMoveForward(false);
+          break;
+        case 5: // forward left
+          controls.canMoveForward(false);
+          controls.canMoveLeft(false);
+          break;
+        case 6: // left
+          controls.canMoveLeft(false);
+          break;
+        case 7: // backward left
+          controls.canMoveBackward(false);
+          controls.canMoveLeft(false);
+          break;
+      }
+    }
+      
+    if(i===8 && collisions.length > 0){
+      
+        if(collisions[0].distance <= bottomDistance) {
+          controls.isOnObject(true);
+        } 
+    }
+
+    if(i >8 && collisions.length > 0){
+        if(collisions[0].distance <= rampDistance) {
+          
+          console.log(i + "scalino");
+          switch ( i ) {
+            case 9: // backward
+               //moveUp = true;
+               controls.getObject().position.y += 2;
+               controls.canMoveBackward(true);
+              break;
+            case 10: // right
+               //moveUp = true;
+               controls.getObject().position.y += 2;
+               controls.canMoveRight(true);
+              break;
+            case 11: // forward
+              //moveUp = true;
+              controls.getObject().position.y += 2;
+              controls.canMoveForward(true);
+              break;
+            case 12: // left
+               //moveUp = true;
+               controls.getObject().position.y += 2;
+               controls.canMoveLeft(true);
+              break;
+            }
+        } 
+      }
+    
   }
 };
 
@@ -315,12 +474,23 @@ this.checkObstacles = function() {
     velocity.z -= velocity.z * 10.0 * delta;
 
     velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+    //velocity.y -= 2.5 * 100.0 * delta; // 100.0 = mass
 
-    if ( moveForward ) velocity.z -= 1000.0 * delta;
+    if ( moveForward ) {
+      velocity.z -= 1000.0 * delta;
+      /*if(moveUp){
+      console.log(' fa male il dito');
+        //velocity.y = velocity.z;
+        controls.getObject().position.y += 25;
+      }*/
+    }
+
     if ( moveBackward ) velocity.z += 1000.0 * delta;
 
     if ( moveLeft ) velocity.x -= 1000.0 * delta;
     if ( moveRight ) velocity.x += 1000.0 * delta;
+
+    //if( moveUp) velocity.y += 50.0 * delta;
 
     if ( isOnObject === true ) {
 
@@ -340,6 +510,8 @@ this.checkObstacles = function() {
       canJump = true;
 
     }
+
+
 
     prevTime = time;
 

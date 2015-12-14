@@ -1,5 +1,5 @@
 // function enableFP() {
-
+  var last_position = new THREE.Vector3();
   var blocker = document.getElementById('blocker');
   var instructions = document.getElementById('instructions');
 
@@ -19,16 +19,21 @@
 
         //set first person camera
         controls.enabled = true;
-        blocker.style.display = 'none';        
+        blocker.style.display = 'none';
+        update_last_position = true;
+        
       } else {
 
         //set perspective camera
+
+        last_position.copy(controls.getObject().position);
         controls.enabled = false;
         blocker.style.display = '-webkit-box';
         blocker.style.display = '-moz-box';
         blocker.style.display = 'box';
         instructions.style.display = '';
-      }
+      }      
+  
     }
 
     var pointerlockerror = function (event) {
@@ -77,6 +82,7 @@
       } else {
         element.requestPointerLock();
       }
+
     }, false);
   } else {
     instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';

@@ -1,4 +1,4 @@
-var camera,mapCamera, scene, renderer, mapRenderer;
+var camera,mapCamera, scene, sceneMap, mapScene, wallScene, sceneRotation ,renderer, mapRenderer;
 var geometry, material, mesh;
 var light;
 var controls;
@@ -13,9 +13,12 @@ var mesh;
 var rays;
 var caster;
 var clock;
+var update_last_position;
 
 function fillOctree(scene) {
     scene.traverse(function(obj) { 
+      //if (obj instanceof THREE.Mesh && (obj.geometry.type!=="PlaneGeometry")) {
+      //if (obj instanceof THREE.Mesh && (obj.geometry.type!=="PlaneGeometry")) {
       if (obj instanceof THREE.Mesh) {
         octree.add(obj);
       }
@@ -60,7 +63,15 @@ function createRaysDirectionAndCaster() {
       new THREE.Vector3(0, 1, -0.55), //forward
       new THREE.Vector3(-0.27, 1, -0.27),//forward left
       new THREE.Vector3(-0.55, 1, 0),//left
-      new THREE.Vector3(-0.27, 1, 0.27) //backward_left
+      new THREE.Vector3(-0.27, 1, 0.27), //backward_left
+      new THREE.Vector3(0, -1, 0), //bottom
+
+      new THREE.Vector3(0, -1, 0.75), //bottom backward
+      new THREE.Vector3(0.75, -1, 0), //bottom right
+      new THREE.Vector3(0, -1, -0.75), //bottom forward
+      //new THREE.Vector3(0, 0, -1), //bottom forward
+      new THREE.Vector3(-0.75, -1, 0), //bottom left
+
      // new THREE.Vector3(0, 1, -1) //forward stairs
     ];
 
@@ -127,6 +138,7 @@ function create_navigation_token() {
   token.position.set(mapCamera.position.x, 25, mapCamera.position.z);
   token.position.y = controls.getObject().position.y;
   token.visible = false;
+  //sceneMap.add( token );
   scene.add( token );
 
   var token_border = copy(token);
@@ -153,6 +165,28 @@ function create_navigation_token() {
 
 }
 
+function updateMapScene(value) {
+
+  if(value === "Walls") {
+    if(wallScene.children.length === 0) {
+      wallScene = new THREE.Scene();
+      wallScene.add(new THREE.Object3D());
+      wallScene.children[0].rotation.copy(sceneRotation);
+      scene.traverse(function(obj) {
+        if(obj instanceof THREE.Mesh && obj.name.indexOf("wall") > -1) {
+          wallScene.children[0].add(obj.clone());
+        }
+      });
+    }
+    mapScene = wallScene;
+  } 
+  else {
+    mapScene = scene;
+  }
+    
+  mapScene.add(token);
+}
+
 function setGUI() {
 
   var GUIcontrols = new function () {
@@ -173,12 +207,57 @@ function setGUI() {
         loader.parse(json, on_parse_text);
       };
 
-      var on_parse_text = function (object) {
+      /*var on_parse_text = function (object) {
         scene.add(object);
         generate_envmap(object);
         createOctree(object);
         fillOctree(object);
+      }; */
+
+      var on_parse_text = function (object) {
+        if(object.children.length === 1) {
+          sceneRotation = object.children[0].rotation.clone();
+        }
+        else {
+          sceneRotation = new THREE.Euler();
+        }
+        scene.add(object);
+        generate_envmap(object);
+        createOctree(object);
+        fillOctree(object);
+        mapScene = scene;
+        wallScene = new THREE.Scene();
       };
+
+      var input = document.createElement( 'input' );
+      input.type = 'file';
+      input.addEventListener('change', on_change_file);
+      input.click();
+    };
+
+
+    this.importMap = function() {
+
+      var on_change_file = function ( event ) {
+        console.log('changeeee');
+        var file = event.target.files[0];
+        var reader = new FileReader();
+        reader.addEventListener('load', on_read_file);
+        reader.readAsText(file);
+      };
+
+      var on_read_file = function (event) {
+        console.log('readddd');
+        try {
+          text = event.target.result;
+          json = JSON.parse(text);
+          wallsFromJSON(json);
+        } catch (error) {
+            alert(error+': error with json')
+        }
+      };
+
+      console.log('CIAOOOO');
 
       var input = document.createElement( 'input' );
       input.type = 'file';
@@ -194,10 +273,13 @@ function setGUI() {
         document.body.requestPointerLock();
         octree.update(); //in caso tornassimo in visuale dall'alto, possiamo importare una nuova scena, e quindi ci serve rifare update dell'octree
         fp = true;
+        document.getElementById('mapCanvas').style.visibility = 'visible';
+    
       } else {
         token.visible = false;
         trackballControls = new THREE.TrackballControls(camera2);
         document.getElementById('blocker').style.display = 'none';
+        document.getElementById('mapCanvas').style.visibility = 'hidden';
         fp = false;
       }
       //fp = !fp;  
@@ -211,22 +293,40 @@ function setGUI() {
       fps = !fps;
     }
 
+/*
+    this.importMap = function () {
+
+
+
+    }*/
+
     this.remove = function () {
 
       for( var i = scene.children.length - 1; i >= 0; i--)
         if(scene.children[i] instanceof THREE.Scene)
           scene.remove(scene.children[i])
 
+      mapScene = new THREE.Scene();
+      wallScene = new THREE.Scene();
     }
+
+    this.minimap = "All";
+
   }
 
   var gui = new dat.GUI();
   
   gui.add(GUIcontrols, 'scene').name('Import JSON');
+  gui.add(GUIcontrols, 'importMap').name('Import JSON 2D MAP');
   gui.add(GUIcontrols, 'remove').name('Remove Scene');
   gui.add(GUIcontrols, 'switchCamera').name('Switch Camera');
   gui.add(GUIcontrols, 'fps').name('Show/Hide FPS');
-  
+  var folder_minimap = gui.addFolder('minimap');
+  var minimap = folder_minimap.add( GUIcontrols, 'minimap', ["All", "Walls"] ).name('show').listen();
+  minimap.onChange( function(value) {
+    updateMapScene(value);
+  });
+
   addStats();
 
 }
@@ -237,12 +337,16 @@ var mz;
 function init() {
 
   scene = new THREE.Scene();
+  sceneMap = new THREE.Scene();
+
   clock = new THREE.Clock();
 
   //Navigator in prima persona
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
   controls = new THREE.PointerLockControls(camera);
+  update_last_position = false;
   scene.add(controls.getObject());
+  //sceneMap.add(controls.getObject());
 
 
   //map camera
@@ -289,6 +393,8 @@ function init() {
   //mapRenderer.setSize(240, 160);
   mapRenderer.setPixelRatio(document.getElementById('mapCanvas').devicePixelRatio);
   document.getElementById('mapCanvas').appendChild(mapRenderer.domElement);
+  document.getElementById('mapCanvas').style.height = mapRenderer.domElement.height+'px';
+  document.getElementById('mapCanvas').style.width = mapRenderer.domElement.width+'px';
 
   create_navigation_token();
 
@@ -313,11 +419,147 @@ function createScene () {
   scene.add(mesh);
 }
 
+
+
+
 function onWindowResize () {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
+
+
+
+ function wallsFromJSON (json){
+    //var editor = this;
+
+    if(! 'walls' in json){
+      return;
+    }
+    var walls =json.walls;
+
+    console.log(walls);
+
+    walls.forEach(function (wall) {
+
+      var wallArray = wall.path;
+
+      var holes=[];
+      var holesJson = wall.holes;
+
+      holesJson.forEach(function (coordinates){
+        holes.push(coordinates.path);
+      });
+      var tickness = wall.tickness;
+
+      var shape = createShapeWall (wallArray , tickness, holes , [0,0], [1,1]);
+      shape.position.x += wall.position[0];
+      shape.position.y += wall.position[1];
+      shape.position.z += wall.position[2];
+      shape.rotation.y = wall.rotation;
+      //editor.add_object(shape);
+      sceneMap.add(shape);
+      //scene.add(shape);
+
+    });
+  }
+
+  function createShapeWall (wallCoord, tickness, holes, holepos, holesca){
+
+      console.log('evviva');
+      var rectShape = new THREE.Shape();
+      //var editor =this;
+      
+      var coordinates = pushCoordinates(rectShape, wallCoord);
+
+      //createHole(rectShape, holes, holepos, holesca);
+
+      maxX= Math.max.apply(null, coordinates.x);
+      //maxY= Math.max.apply(null, coordinates.y);
+
+      /*
+      var geometry = new THREE.ShapeGeometry( rectShape );
+      var geometryExtr = new THREE.ExtrudeGeometry( rectShape ,{ amount: tickness, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 });
+  
+      //editor.assignUVs(geometry);
+
+      var plane1 = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({side : THREE.BackSide}));
+      plane1.position.z = - 1.65;
+      plane1.noNeedsHelper=true;
+
+      var plane2 = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial());
+      plane2.position.z = tickness + 1.65;
+      plane2.noNeedsHelper=true;
+      */
+
+      var geometryPlane = new THREE.PlaneGeometry( maxX, tickness, 32 );
+
+      //var wall = new THREE.Mesh(geometryExtr, new THREE.MeshPhongMaterial());
+      var wall = new THREE.Mesh(geometryPlane, new THREE.MeshPhongMaterial());
+      wall.position.z = + tickness/2;
+      wall.position.x = + maxX/2;
+      wall.rotation.x = - Math.PI / 2;
+
+      //var obj = new THREE.Group;
+
+      //wall.add( plane1 );
+      //wall.add( plane2 );
+
+      return wall;
+   
+  }
+
+/*
+  function createHole (rectShape, holes, holepos, holesca){
+      holes.forEach(function(hole){
+        var holeShape = new THREE.Path();
+        holeShape.moveTo( (hole[0][0]  * holesca[0]) + holepos[0], (hole[0][1] * holesca[1]) + holepos[1] );
+
+        hole.forEach(function(point){
+          if(hole.indexOf(point)!==0){
+            holeShape.lineTo( (point[0] * holesca[0]) + holepos[0], (point[1] * holesca[1]) + holepos[1]);
+          }
+        });
+
+        rectShape.holes.push(holeShape);
+      });
+  }*/
+
+
+/*
+  function createWall (rectShape, wallCoord){
+
+    var xCoords = [];
+    var yCoords = [];
+
+    rectShape.moveTo(wallCoord[0][0], wallCoord[0][1]);
+    xCoords.push(wallCoord[0][0]);
+    yCoords.push(wallCoord[0][1]);
+
+    wallCoord.forEach(function(point){
+      if(wallCoord.indexOf(point)!==0){
+        rectShape.lineTo(point[0],point[1]);
+        xCoords.push(point[0]);
+        yCoords.push(point[1]);
+      }
+    });
+
+    return {x: xCoords, y: yCoords};
+  }*/
+
+
+function pushCoordinates (rectShape, wallCoord){
+    var xCoords = [];
+    var yCoords = [];
+
+    wallCoord.forEach(function(point){
+        xCoords.push(point[0]);
+        yCoords.push(point[1]);
+    });
+
+    return {x: xCoords, y: yCoords};
+}
+
 
 function animate () {
   requestAnimationFrame(animate);
@@ -326,23 +568,38 @@ function animate () {
 
   if(fp) {
     controls.update();
+    if(update_last_position) {
+      controls.getObject().position.copy(last_position);
+      update_last_position = false;
+    }
     token.position.x = controls.getObject().position.x;
+    token.position.y = controls.getObject().position.y;
     token.position.z = controls.getObject().position.z;
     token.rotation.y = controls.getObject().rotation.y;
     mapCamera.position.x = token.position.x;
+    mapCamera.position.y = token.position.y;
     mapCamera.position.z = token.position.z;
     token.visible = false;
     renderer.render(scene, camera);
     token.visible = true; 
-    document.getElementById('mapCanvas').style.visibility = 'visible';
+    if (sceneMap.children.length>1) {
+        //sceneMap.add( token );
+      scene.remove( token );
+      sceneMap.add( token );
+      mapRenderer.clear();
+      mapRenderer.render(sceneMap, mapCamera);
+    }
+    else{
+      mapRenderer.clear();
+      mapRenderer.render(mapScene, mapCamera);      
+    }
   } else {
     renderer.render(scene, camera2);
     trackballControls.update();
-    document.getElementById('mapCanvas').style.visibility = 'hidden';
   }
-
-  mapRenderer.clear();
-  mapRenderer.render(scene, mapCamera);
 }
+
+
+
 
 init();
