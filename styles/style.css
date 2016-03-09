@@ -26,8 +26,73 @@ body {
   cursor: pointer;
 }
 
-.dg {
-    color: #3366FF;
-    font: 11px 'Lucida Grande', sans-serif;
-    text-shadow: 0 -1px 0 #111;
+.dg.main {
+    text-shadow: none;
+}
+
+.dg .cr.function {
+    border-left: 0px !important;
+    border-bottom: 1px solid #99c2ff;
+    cursor: pointer;
+    background-color: white;
+    color:#848482;
+    font-family:Verdana;
+}
+
+.dg .cr.function:hover {
+    background-color: #99c2ff !important;
+    color:white;
+}
+
+
+.dg.main .close-button {
+    background-color:  #99c2ff !important;
+    color: white;
+    font-family:Verdana;
+    text-shadow: none;   
+}
+
+
+.dg .cr.string {
+    border-left: 3px solid #99c2ff !important;
+    border-bottom: 0px;
+    background-color: white;
+    color:#848482;
+    font-family:Verdana;
+    text-shadow: none;
+}
+
+
+.dg li.title {
+    padding-left: 16px;
+    background: #6698FF !important;
+    cursor: pointer;
+    color:white;
+    font-family:Verdana;
+    text-shadow: none;
+    border-bottom: 1px solid white !important;
+}
+
+.dg .c select {
+    color:#848482;
+    font-family:Verdana;
+    text-shadow: none;
+}
+
+div #fpsText {
+  color:#6698FF !important;
+  font-family:Verdana;
+  text-shadow: none;
+  display: inline-block;
+    bottom: 0;
+}
+
+#fps{
+}
+
+
+input{
+  position: absolute;
+  float: left;
+  visibility: hidden;
 }

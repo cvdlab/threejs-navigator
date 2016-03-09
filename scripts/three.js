@@ -14387,7 +14387,7 @@ THREE.ObjectLoader.prototype = {
 				case 'CubeCamera':
 					near = data.children[0].near;
 					far = data.children[0].far;
-					resolution = 1024
+					resolution = 512
 					object = new THREE.CubeCamera( near, far, resolution );
 					object.mapping = data.mapping;
 					data.children = [];

@@ -1,5 +1,5 @@
 // function enableFP() {
-  var last_position = new THREE.Vector3();
+  var last_position = new THREE.Vector3(100,100,100);
   var blocker = document.getElementById('blocker');
   var instructions = document.getElementById('instructions');
 
@@ -18,7 +18,9 @@
       if (isPointerLockElement) {
 
         //set first person camera
-        controls.enabled = true;
+        dat.GUI.toggleHide();
+        //gui.domElement.style.visibility = "hidden";
+        pointerlockcontrols.enabled = true;
         blocker.style.display = 'none';
         update_last_position = true;
         
@@ -26,8 +28,10 @@
 
         //set perspective camera
 
-        last_position.copy(controls.getObject().position);
-        controls.enabled = false;
+        last_position.copy(pointerlockcontrols.getObject().position);
+        dat.GUI.toggleHide();
+        //gui.domElement.style.visibility = "visible";
+        pointerlockcontrols.enabled = false;
         blocker.style.display = '-webkit-box';
         blocker.style.display = '-moz-box';
         blocker.style.display = 'box';
