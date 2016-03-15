@@ -24,7 +24,7 @@
     oReq.addEventListener('load', transferComplete);
     oReq.addEventListener('error', transferFailed);
     oReq.addEventListener('abort', transferCanceled);
-    oReq.open('GET', 'inputs/scene-atomized.json');
+    oReq.open('GET', 'inputs/scene-no-envmaps-atomized.json');
     oReq.setRequestHeader('Accept', 'application/json');
     oReq.setRequestHeader('Content-Type', 'application/json');
     oReq.send();
